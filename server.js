@@ -2,6 +2,8 @@ const http = require('http');
 const mongoose = require('mongoose')
 const dotenv = require('dotenv');
 const post = require('./models/posts')
+const headers = require('./headers');
+const errorHandle = require('./errorHandle');
 
 dotenv.config({ path: './config.env' });
 const DB = process.env.DATABASE.replace(
@@ -14,12 +16,6 @@ mongoose
 .then(() => console.log('資料庫連接成功'));
 
 const requestListener = async(req, res)=>{
-  const headers = {
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Content-Length, X-Requested-With',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'PATCH, POST, GET,OPTIONS,DELETE',
-    'Content-Type': 'application/json'
-  }
   let body = "";
     req.on('data', chunk=>{
         body+=chunk;
@@ -27,7 +23,7 @@ const requestListener = async(req, res)=>{
 
   if(req.url == "/posts" && req.method == "GET"){
     const posts = await post.find();
-    res.writeHead(200,headers);
+    res.writeHead(200, headers);
     res.write(JSON.stringify({
         "status": "success",
         posts
@@ -49,22 +45,11 @@ const requestListener = async(req, res)=>{
                     "data": await post.find(),
                 }));
                 res.end();
-                
             }else{
-                res.writeHead(400, headers);
-                res.write(JSON.stringify({
-                    "status": "false",
-                    "message": "欄位未填寫正確，或無此 post ID",
-                }));
-                res.end();
+              errorHandle(res);
             }
         }catch(error){
-            res.writeHead(400, headers);
-            res.write(JSON.stringify({
-                "status": "false",
-                "message": error,
-            }));
-            res.end();
+          errorHandle(res);
         }
     })
   }else if(req.url=="/posts" && req.method == "DELETE"){
@@ -100,34 +85,18 @@ const requestListener = async(req, res)=>{
                     "data": editPost,
                 }));
                 res.end();
-                
             }else{
-                res.writeHead(400, headers);
-                res.write(JSON.stringify({
-                    "status": "false",
-                    "message": "欄位未填寫正確，或無此 post ID",
-                }));
-                res.end();
+              errorHandle(res);
             }
-        }catch(error){
-            res.writeHead(400, headers);
-            res.write(JSON.stringify({
-                "status": "false",
-                "message": error,
-            }));
-            res.end();
+        }catch{
+          errorHandle(res);
         }
     })
   }else if(req.method == "OPTIONS"){
     res.writeHead(200, headers);
     res.end();
   }else{
-    res.writeHead(404, headers);
-    res.write(JSON.stringify({
-        "status": "false",
-        "message": "無此網站路由"
-    }));
-    res.end();
+    errorHandle(res);
   }
 };
 
